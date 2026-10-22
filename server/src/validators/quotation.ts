@@ -1,12 +1,27 @@
 import { z } from 'zod';
 
-const dimensionsSchema = z.object({
-  length: z.number().min(0).max(10000).optional(),
-  width: z.number().min(0).max(10000).optional(),
-  height: z.number().min(0).max(10000).optional(),
-  count: z.number().min(0).max(100000).optional(),
-  perUnit: z.number().min(0).max(100000).optional(),
-}).optional();
+const optionalDimensionNumber = z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  const num = Number(val);
+  return isNaN(num) ? undefined : num;
+}, z.number().min(0).max(100000).optional());
+
+const dimensionsSchema = z.preprocess((val) => {
+  if (!val || typeof val !== 'object') return undefined;
+  return val;
+}, z.object({
+  length: optionalDimensionNumber,
+  width: optionalDimensionNumber,
+  height: optionalDimensionNumber,
+  count: optionalDimensionNumber,
+  perUnit: optionalDimensionNumber,
+}).optional().nullable());
+
+const optionalFeeNumber = z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  const num = Number(val);
+  return isNaN(num) ? undefined : num;
+}, z.number().min(0).optional().nullable());
 
 const quotationItemSchema = z.object({
   itemId: z.string().min(1),
@@ -15,9 +30,17 @@ const quotationItemSchema = z.object({
   description: z.string().max(2000).optional(),
   specifications: z.string().max(2000).optional(),
   unit: z.string().min(1),
-  quantity: z.number().min(0).max(100000),
+  quantity: z.preprocess((val) => {
+    if (val === '' || val === null || val === undefined) return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  }, z.number().min(0).max(1000000)),
   dimensions: dimensionsSchema,
-  rate: z.number().min(0),
+  rate: z.preprocess((val) => {
+    if (val === '' || val === null || val === undefined) return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  }, z.number().min(0)),
   taxConfig: z.object({
     rate: z.number().min(0).max(100),
     type: z.enum(['exclusive', 'inclusive']),
@@ -41,7 +64,13 @@ const quotationRoomSchema = z.object({
 const designFeeSchema = z.object({
   description: z.string().min(1),
   feeType: z.enum(['fixed', 'percentage', 'per_sqft']),
-  amount: z.number().min(0),
+  amount: z.preprocess((val) => {
+    if (val === '' || val === null || val === undefined) return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  }, z.number().min(0)),
+  sqft: optionalFeeNumber,
+  ratePerSqft: optionalFeeNumber,
   calculatedAmount: z.number().default(0),
   isTaxable: z.boolean().default(true),
 });
@@ -59,7 +88,7 @@ const discountConfigSchema = z.object({
 });
 
 const taxConfigSchema = z.object({
-  enabled: z.boolean().default(true),
+  enabled: z.boolean().default(false),
   type: z.enum(['exclusive', 'inclusive']).default('exclusive'),
   rate: z.number().min(0).max(100).default(18),
   isInterState: z.boolean().default(false),
@@ -77,7 +106,7 @@ export const createQuotationSchema = z.object({
   designFees: z.array(designFeeSchema).default([]),
   additionalCharges: z.array(additionalChargeSchema).default([]),
   discountConfig: discountConfigSchema.default({ type: 'none', value: 0, calculatedAmount: 0 }),
-  taxConfig: taxConfigSchema.default({ enabled: true, type: 'exclusive', rate: 18, isInterState: false }),
+  taxConfig: taxConfigSchema.default({ enabled: false, type: 'exclusive', rate: 18, isInterState: false }),
   inclusions: z.array(z.string()).default([]),
   exclusions: z.array(z.string()).default([]),
   terms: z.array(z.string()).default([]),
@@ -94,7 +123,7 @@ export const calculateQuotationSchema = z.object({
   designFees: z.array(designFeeSchema).default([]),
   additionalCharges: z.array(additionalChargeSchema).default([]),
   discountConfig: discountConfigSchema.default({ type: 'none', value: 0, calculatedAmount: 0 }),
-  taxConfig: taxConfigSchema.default({ enabled: true, type: 'exclusive', rate: 18, isInterState: false }),
+  taxConfig: taxConfigSchema.default({ enabled: false, type: 'exclusive', rate: 18, isInterState: false }),
   paymentMilestones: z.array(paymentMilestoneSchema).default([]),
   carpetAreaSqFt: z.number().min(0).optional(),
 });

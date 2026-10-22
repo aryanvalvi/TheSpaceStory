@@ -147,8 +147,11 @@ export function calculateRoomSubtotal(items: RoomItemInput[]): number {
 // ─── Design Fees ────────────────────────────────────────────────────
 
 export interface DesignFeeInput {
+  description?: string;
   feeType: 'fixed' | 'percentage' | 'per_sqft';
   amount: number; // paise for fixed/per_sqft, percentage for percentage
+  sqft?: number;
+  ratePerSqft?: number; // paise per sqft
   isTaxable: boolean;
 }
 
@@ -162,10 +165,20 @@ export function calculateDesignFee(
       return roundToPaise(fee.amount);
     case 'percentage': {
       const pct = fee.amount > 100 ? fee.amount / 100 : fee.amount;
-      return roundToPaise(roomsSubtotal * pct / 100);
+      return roundToPaise((roomsSubtotal * pct) / 100);
     }
-    case 'per_sqft':
-      return roundToPaise((carpetAreaSqFt ?? 0) * fee.amount);
+    case 'per_sqft': {
+      if (typeof fee.sqft === 'number' && fee.sqft > 0 && typeof fee.ratePerSqft === 'number') {
+        return roundToPaise(fee.sqft * fee.ratePerSqft);
+      }
+      if (typeof fee.sqft === 'number' && fee.sqft > 0 && fee.amount > 0) {
+        return roundToPaise(fee.sqft * fee.amount);
+      }
+      if (carpetAreaSqFt && carpetAreaSqFt > 0 && fee.amount > 0) {
+        return roundToPaise(carpetAreaSqFt * fee.amount);
+      }
+      return roundToPaise(fee.amount || 0);
+    }
     default:
       return 0;
   }

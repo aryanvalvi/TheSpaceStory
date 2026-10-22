@@ -182,5 +182,52 @@ describe('Financial Calculation Engine', () => {
       expect(result.calculationSnapshot.sgst).toBeUndefined();
       expect(result.calculationSnapshot.grandTotal).toBe(1180000);
     });
+
+    it('calculates per_sqft design fees using explicit sqft and ratePerSqft (e.g. 1200 sqft @ ₹80/sqft = ₹96,000)', () => {
+      const input: QuotationCalculationInput = {
+        rooms: [
+          {
+            roomId: 'r1',
+            name: 'Living',
+            items: [
+              {
+                itemId: 'i1',
+                quantity: 1,
+                rate: 10000000, // ₹1,00,000.00
+                calculationMethod: 'manual',
+                isOptional: false,
+                isIncluded: true,
+              },
+            ],
+          },
+        ],
+        designFees: [
+          {
+            description: 'Interior Designer Professional Fees',
+            feeType: 'per_sqft',
+            amount: 9600000, // ₹96,000 in paise
+            sqft: 1200,
+            ratePerSqft: 8000, // ₹80 in paise
+            isTaxable: true,
+          },
+        ],
+        additionalCharges: [],
+        discount: { type: 'none', value: 0 },
+        taxConfig: {
+          enabled: false,
+          type: 'exclusive',
+          rate: 18,
+          isInterState: false,
+        },
+        paymentMilestones: [{ description: 'Full', percentage: 100 }],
+      };
+
+      const result = calculateQuotation(input);
+      // 1200 * 8000 = 9,600,000 paise (₹96,000.00)
+      expect(result.calculationSnapshot.designFeesTotal).toBe(9600000);
+      expect(result.designFees[0].calculatedAmount).toBe(9600000);
+      // Grand total = 10,000,000 + 9,600,000 = 19,600,000 paise (₹1,96,000.00)
+      expect(result.calculationSnapshot.grandTotal).toBe(19600000);
+    });
   });
 });

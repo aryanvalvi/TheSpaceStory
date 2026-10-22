@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginView from './features/auth/LoginView';
 import Sidebar from './components/Sidebar';
@@ -13,8 +13,53 @@ import SettingsView from './features/settings/SettingsView';
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [editingQuotationId, setEditingQuotationId] = useState(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('tss_active_tab');
+      return savedTab || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  });
+  const [editingQuotationId, setEditingQuotationId] = useState(() => {
+    try {
+      return localStorage.getItem('tss_editing_quotation_id') || null;
+    } catch {
+      return null;
+    }
+  });
+  const [initialProjectId, setInitialProjectId] = useState(() => {
+    try {
+      return localStorage.getItem('tss_editing_project_id') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Keep navigation and editing state synchronized with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('tss_active_tab', activeTab);
+      if (editingQuotationId) {
+        localStorage.setItem('tss_editing_quotation_id', editingQuotationId);
+      } else {
+        localStorage.removeItem('tss_editing_quotation_id');
+      }
+      if (initialProjectId) {
+        localStorage.setItem('tss_editing_project_id', initialProjectId);
+      } else {
+        localStorage.removeItem('tss_editing_project_id');
+      }
+    } catch (e) {
+      console.warn('Failed to update tab storage:', e);
+    }
+  }, [activeTab, editingQuotationId, initialProjectId]);
+
+  useEffect(() => {
+    if (activeTab === 'editor' && !editingQuotationId) {
+      setEditingQuotationId('new');
+    }
+  }, [activeTab, editingQuotationId]);
 
   if (loading) {
     return (
@@ -74,6 +119,8 @@ function AppContent() {
   };
 
   const handleNewQuotationForProject = (project) => {
+    const pId = typeof project === 'object' ? project?._id : project;
+    setInitialProjectId(pId || null);
     setEditingQuotationId('new');
     setActiveTab('editor');
   };
@@ -135,6 +182,10 @@ function AppContent() {
           setEditingQuotationId(null);
         }}
         onNewQuotation={handleNewQuotation}
+        onResumeDraft={() => {
+          setEditingQuotationId('new');
+          setActiveTab('editor');
+        }}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -176,11 +227,15 @@ function AppContent() {
           {activeTab === 'editor' && (
             <QuotationEditor
               quotationId={editingQuotationId}
+              initialProjectId={initialProjectId}
               onBack={() => {
                 setActiveTab('quotations');
                 setEditingQuotationId(null);
+                setInitialProjectId(null);
               }}
-              onSaved={() => {}}
+              onSaved={() => {
+                setInitialProjectId(null);
+              }}
             />
           )}
         </main>

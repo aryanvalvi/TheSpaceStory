@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { formatINR, formatDate } from '../../lib/utils';
 import {
+  getActiveDraftSummary,
+  clearQuotationDraft,
+} from '../../lib/quotationDraftStorage';
+import {
   FileText,
   Plus,
   Search,
@@ -13,18 +17,38 @@ import {
   XCircle,
   Ban,
   Clock,
+  Trash2,
 } from 'lucide-react';
 
 export default function QuotationsListView({ onOpenQuotation, onNewQuotation }) {
   const [quotations, setQuotations] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [draftSummary, setDraftSummary] = useState(() => getActiveDraftSummary());
 
   useEffect(() => {
     loadQuotations();
   }, [statusFilter]);
+
+  useEffect(() => {
+    // Load projects to display project name for active draft
+    api.getProjects({ limit: 100 })
+      .then((data) => setProjects(Array.isArray(data) ? data : data.data || []))
+      .catch(() => {});
+
+    const handleDraftUpdate = () => {
+      setDraftSummary(getActiveDraftSummary());
+    };
+    window.addEventListener('tss-draft-updated', handleDraftUpdate);
+    window.addEventListener('storage', handleDraftUpdate);
+    return () => {
+      window.removeEventListener('tss-draft-updated', handleDraftUpdate);
+      window.removeEventListener('storage', handleDraftUpdate);
+    };
+  }, []);
 
   async function loadQuotations() {
     try {
@@ -180,6 +204,101 @@ export default function QuotationsListView({ onOpenQuotation, onNewQuotation }) 
         </div>
       </div>
 
+      {/* Active Unsaved Draft Card */}
+      {draftSummary && (
+        <div style={{
+          background: 'linear-gradient(135deg, #fdfbf7 0%, #fbf6ec 100%)',
+          border: '1px solid #e8d7b8',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '14px',
+          boxShadow: '0 2px 10px rgba(184, 134, 11, 0.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: '#b8860b',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <FileText size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '800', color: '#1a1c20' }}>
+                  Unsaved Quotation Draft in Progress
+                </span>
+                <span style={{ fontSize: '11px', background: '#e0c58e', color: '#543b0c', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                  Stored in Browser
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>
+                {projects.find(p => p._id === draftSummary.projectId)?.projectName
+                  ? `Project: ${projects.find(p => p._id === draftSummary.projectId)?.projectName} • `
+                  : ''}
+                {draftSummary.roomsCount} room(s) • {draftSummary.totalItems} item(s)
+                {draftSummary.lastModified
+                  ? ` • Last modified ${new Date(draftSummary.lastModified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : ''}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => {
+                if (confirm('Discard this unsaved quotation draft?')) {
+                  clearQuotationDraft('new');
+                  setDraftSummary(null);
+                }
+              }}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e8e3d9',
+                color: '#dc2626',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Discard Draft
+            </button>
+            <button
+              onClick={() => onNewQuotation()}
+              style={{
+                background: 'linear-gradient(135deg, #b8860b 0%, #996515 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(184, 134, 11, 0.25)',
+              }}
+            >
+              <span>Resume Quotation</span>
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
         {filters.map((f) => {
@@ -288,15 +407,17 @@ export default function QuotationsListView({ onOpenQuotation, onNewQuotation }) 
                         <button
                           onClick={() => onOpenQuotation(q._id)}
                           style={{
-                            background: '#f3efe8',
-                            color: '#4b5563',
+                            background: q.status === 'draft' ? '#fdf8ee' : '#f3efe8',
+                            color: q.status === 'draft' ? '#b8860b' : '#4b5563',
+                            border: q.status === 'draft' ? '1px solid #ebdcc5' : '1px solid transparent',
                             padding: '6px 10px',
                             borderRadius: '6px',
                             fontSize: '12px',
                             fontWeight: '600',
+                            cursor: 'pointer',
                           }}
                         >
-                          Edit
+                          {q.status === 'draft' ? 'Edit Draft' : 'View / Edit'}
                         </button>
 
                         {/* Status Transition Action Buttons */}

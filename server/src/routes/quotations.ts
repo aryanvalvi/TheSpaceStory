@@ -19,5 +19,6 @@ router.post('/:id/revisions', quotationController.createRevision);
 router.post('/:id/approve', quotationController.approve);
 router.post('/:id/reject', quotationController.reject);
 router.post('/:id/cancel', quotationController.cancel);
+router.post('/:id/reopen', quotationController.reopen);
 
 export default router;

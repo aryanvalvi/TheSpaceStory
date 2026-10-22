@@ -129,4 +129,54 @@ describe('The Space Story API Endpoints', () => {
     expect(res.body.data.calculationSnapshot.roomsSubtotal).toBe(8000000);
     expect(res.body.data.calculationSnapshot.grandTotal).toBe(9440000); // 8,000,000 + 18% GST (1,440,000)
   });
+
+  it('POST /api/quotations/calculate accepts string and empty-string dimensions and calculates per_sqft design fees', async () => {
+    const res = await request(app)
+      .post('/api/quotations/calculate')
+      .set('Cookie', authCookie)
+      .send({
+        rooms: [
+          {
+            roomId: 'preview-r2',
+            name: 'Civil Work',
+            items: [
+              {
+                itemId: 'preview-i2',
+                name: 'Kitchen Wall Tiles',
+                unit: 'sqft',
+                quantity: '208',
+                rate: '50000',
+                dimensions: {
+                  length: '16',
+                  width: '13',
+                  height: '',
+                  count: '',
+                  perUnit: '',
+                },
+                calculationMethod: 'length_x_width',
+                isOptional: false,
+                isIncluded: true,
+              },
+            ],
+          },
+        ],
+        designFees: [
+          {
+            description: 'Design & Architecture Fee (Per Sq. Ft.)',
+            feeType: 'per_sqft',
+            sqft: '1200',
+            ratePerSqft: '12000', // ₹120 in paise = 12000
+            amount: '14400000', // ₹1,44,000 in paise
+            isTaxable: true,
+          },
+        ],
+        taxConfig: { enabled: true, type: 'exclusive', rate: 18, isInterState: false },
+        paymentMilestones: [{ description: 'Full', percentage: 100 }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // Design fee: 1200 * 12000 = 14,400,000 paise (₹1,44,000.00)
+    expect(res.body.data.calculationSnapshot.designFeesTotal).toBe(14400000);
+  });
 });

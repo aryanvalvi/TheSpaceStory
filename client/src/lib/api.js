@@ -107,7 +107,8 @@ export const api = {
   approveQuotation: (id) => request(`/quotations/${id}/approve`, { method: 'POST' }),
   rejectQuotation: (id) => request(`/quotations/${id}/reject`, { method: 'POST' }),
   cancelQuotation: (id) => request(`/quotations/${id}/cancel`, { method: 'POST' }),
-  getQuotationPdfUrl: (id) => `/api/quotations/${id}/pdf`,
+  reopenQuotation: (id) => request(`/quotations/${id}/reopen`, { method: 'POST' }),
+  getQuotationPdfUrl: (id, theme = 'tss_brand') => `/api/quotations/${id}/pdf?theme=${encodeURIComponent(theme)}`,
 
   // Settings
   getStudioSettings: () => request('/settings/studio'),

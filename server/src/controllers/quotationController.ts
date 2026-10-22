@@ -48,8 +48,11 @@ function buildCalcInput(body: any): QuotationCalculationInput {
       })),
     })),
     designFees: (body.designFees || []).map((fee: any): DesignFeeInput => ({
+      description: fee.description,
       feeType: fee.feeType,
       amount: fee.amount || 0,
+      sqft: fee.sqft !== undefined && fee.sqft !== null && fee.sqft !== '' ? Number(fee.sqft) : undefined,
+      ratePerSqft: fee.ratePerSqft !== undefined && fee.ratePerSqft !== null && fee.ratePerSqft !== '' ? Number(fee.ratePerSqft) : undefined,
       isTaxable: fee.isTaxable !== false,
     })),
     additionalCharges: (body.additionalCharges || []).map((charge: any): AdditionalChargeInput => ({
@@ -61,7 +64,7 @@ function buildCalcInput(body: any): QuotationCalculationInput {
       value: body.discountConfig?.value || 0,
     },
     taxConfig: {
-      enabled: body.taxConfig?.enabled !== false,
+      enabled: Boolean(body.taxConfig?.enabled),
       type: body.taxConfig?.type || 'exclusive',
       rate: body.taxConfig?.rate ?? 18,
       isInterState: body.taxConfig?.isInterState || false,
@@ -197,9 +200,11 @@ export const quotationController = {
         status: 'draft',
         rooms,
         designFees: calcResult.designFees.map((f, i) => ({
-          description: data.designFees?.[i]?.description || f.feeType,
+          description: data.designFees?.[i]?.description || f.description || f.feeType,
           feeType: f.feeType,
           amount: f.amount,
+          sqft: (data.designFees?.[i] as any)?.sqft ?? f.sqft,
+          ratePerSqft: (data.designFees?.[i] as any)?.ratePerSqft ?? f.ratePerSqft,
           calculatedAmount: f.calculatedAmount,
           isTaxable: f.isTaxable,
         })),
@@ -210,7 +215,7 @@ export const quotationController = {
           calculatedAmount: calcResult.calculationSnapshot.discountAmount,
         },
         taxConfig: data.taxConfig || settings?.defaultTaxConfig || {
-          enabled: true,
+          enabled: false,
           type: 'exclusive',
           rate: 18,
           isInterState: false,
@@ -283,9 +288,11 @@ export const quotationController = {
 
       if (data.designFees) {
         quotation.designFees = calcResult.designFees.map((f, i) => ({
-          description: data.designFees![i]?.description || f.feeType,
+          description: data.designFees![i]?.description || f.description || f.feeType,
           feeType: f.feeType,
           amount: f.amount,
+          sqft: (data.designFees![i] as any)?.sqft ?? f.sqft,
+          ratePerSqft: (data.designFees![i] as any)?.ratePerSqft ?? f.ratePerSqft,
           calculatedAmount: f.calculatedAmount,
           isTaxable: f.isTaxable,
         })) as any;
@@ -454,13 +461,30 @@ export const quotationController = {
     }
   },
 
+  async reopen(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const quotation = await Quotation.findById(req.params.id);
+      if (!quotation) throw createAppError(404, 'NOT_FOUND', 'Quotation not found');
+      if (quotation.status === 'approved') {
+        throw createAppError(400, 'VALIDATION_ERROR', 'Approved quotations cannot be reopened to draft. Create a revision instead.');
+      }
+      quotation.status = 'draft';
+      quotation.version += 1;
+      await quotation.save();
+      res.json({ success: true, data: quotation });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getPdf(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const quotation = await Quotation.findById(req.params.id);
       if (!quotation) throw createAppError(404, 'NOT_FOUND', 'Quotation not found');
 
       const settings = await StudioSettings.findOne();
-      const html = generateQuotationHtml(quotation, settings);
+      const theme = (req.query.theme as string) || 'tss_brand';
+      const html = generateQuotationHtml(quotation, settings, undefined, theme);
 
       res.setHeader('Content-Type', 'text/html');
       res.send(html);

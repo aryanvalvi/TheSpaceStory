@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { formatINR, formatDate } from '../../lib/utils';
+import { getActiveDraftSummary } from '../../lib/quotationDraftStorage';
 import {
   FileText,
   Users,
@@ -11,6 +12,7 @@ import {
   Printer,
   ChevronRight,
   Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function Dashboard({ onNavigate, onOpenQuotation, onNewQuotation }) {
@@ -18,6 +20,19 @@ export default function Dashboard({ onNavigate, onOpenQuotation, onNewQuotation 
   const [quotations, setQuotations] = useState([]);
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [draftSummary, setDraftSummary] = useState(() => getActiveDraftSummary());
+
+  useEffect(() => {
+    const handleDraftUpdate = () => {
+      setDraftSummary(getActiveDraftSummary());
+    };
+    window.addEventListener('tss-draft-updated', handleDraftUpdate);
+    window.addEventListener('storage', handleDraftUpdate);
+    return () => {
+      window.removeEventListener('tss-draft-updated', handleDraftUpdate);
+      window.removeEventListener('storage', handleDraftUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -74,22 +89,49 @@ export default function Dashboard({ onNavigate, onOpenQuotation, onNewQuotation 
             Prepare room-wise itemized quotations with instant quantity calculations, customizable design fees, GST compliance, and client-ready PDFs.
           </p>
         </div>
-        <button
-          onClick={onNewQuotation}
-          style={{
-            background: 'linear-gradient(135deg, #b8860b 0%, #996515 100%)',
-            color: '#ffffff',
-            padding: '12px 22px',
-            borderRadius: '10px',
-            fontWeight: '600',
-            fontSize: '14px',
-            boxShadow: '0 4px 14px rgba(184, 134, 11, 0.4)',
-            flexShrink: 0,
-          }}
-        >
-          <PlusCircle size={18} />
-          <span>Create New Quotation</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+          {draftSummary && (
+            <button
+              onClick={onNewQuotation}
+              style={{
+                background: '#23262d',
+                border: '1px solid #b8860b',
+                color: '#f59e0b',
+                padding: '11px 18px',
+                borderRadius: '10px',
+                fontWeight: '700',
+                fontSize: '13.5px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+              }}
+            >
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+              <span>Resume Draft ({draftSummary.totalItems} items)</span>
+            </button>
+          )}
+
+          <button
+            onClick={onNewQuotation}
+            style={{
+              background: 'linear-gradient(135deg, #b8860b 0%, #996515 100%)',
+              color: '#ffffff',
+              padding: '12px 22px',
+              borderRadius: '10px',
+              fontWeight: '600',
+              fontSize: '14px',
+              boxShadow: '0 4px 14px rgba(184, 134, 11, 0.4)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <PlusCircle size={18} />
+            <span>Create New Quotation</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}

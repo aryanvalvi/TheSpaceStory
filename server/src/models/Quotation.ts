@@ -44,6 +44,8 @@ export interface IDesignFee {
   description: string;
   feeType: 'fixed' | 'percentage' | 'per_sqft';
   amount: number;
+  sqft?: number;
+  ratePerSqft?: number;
   calculatedAmount: number;
   isTaxable: boolean;
 }
@@ -148,7 +150,7 @@ const discountConfigSchema = new Schema(
 
 const quotationTaxConfigSchema = new Schema(
   {
-    enabled: { type: Boolean, default: true },
+    enabled: { type: Boolean, default: false },
     type: { type: String, enum: ['exclusive', 'inclusive'], default: 'exclusive' },
     rate: { type: Number, default: 18 },
     isInterState: { type: Boolean, default: false },
@@ -270,6 +272,8 @@ const quotationSchema = new Schema<IQuotation>(
         description: { type: String, required: true },
         feeType: { type: String, enum: ['fixed', 'percentage', 'per_sqft'], required: true },
         amount: { type: Number, required: true },
+        sqft: { type: Number },
+        ratePerSqft: { type: Number },
         calculatedAmount: { type: Number, default: 0 },
         isTaxable: { type: Boolean, default: true },
         _id: false,

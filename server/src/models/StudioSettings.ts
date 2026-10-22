@@ -51,7 +51,7 @@ const addressSchema = new Schema<IAddress>(
 
 const taxConfigSchema = new Schema<ITaxConfig>(
   {
-    enabled: { type: Boolean, default: true },
+    enabled: { type: Boolean, default: false },
     type: { type: String, enum: ['exclusive', 'inclusive'], default: 'exclusive' },
     rate: { type: Number, default: 18, min: 0, max: 100 },
     isInterState: { type: Boolean, default: false },

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   FileText,
@@ -11,9 +11,23 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getActiveDraftSummary } from '../lib/quotationDraftStorage';
 
-export default function Sidebar({ activeTab, onTabChange, onNewQuotation }) {
+export default function Sidebar({ activeTab, onTabChange, onNewQuotation, onResumeDraft }) {
   const { user, logout } = useAuth();
+  const [draftSummary, setDraftSummary] = useState(() => getActiveDraftSummary());
+
+  useEffect(() => {
+    const handleDraftChange = () => {
+      setDraftSummary(getActiveDraftSummary());
+    };
+    window.addEventListener('tss-draft-updated', handleDraftChange);
+    window.addEventListener('storage', handleDraftChange);
+    return () => {
+      window.removeEventListener('tss-draft-updated', handleDraftChange);
+      window.removeEventListener('storage', handleDraftChange);
+    };
+  }, []);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -25,7 +39,7 @@ export default function Sidebar({ activeTab, onTabChange, onNewQuotation }) {
   ];
 
   return (
-    <aside style={{
+    <aside className="no-print" style={{
       width: '260px',
       background: '#191b20',
       color: '#e2e4e9',
@@ -106,6 +120,35 @@ export default function Sidebar({ activeTab, onTabChange, onNewQuotation }) {
           <PlusCircle size={16} />
           <span>New Quotation</span>
         </button>
+
+        {draftSummary && onResumeDraft && (
+          <button
+            onClick={onResumeDraft}
+            title="Resume editing unsaved quotation draft"
+            style={{
+              width: '100%',
+              marginTop: '8px',
+              background: '#23262d',
+              border: '1px solid #b8860b',
+              color: '#f59e0b',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} />
+              <span>Resume Draft</span>
+            </div>
+            <span style={{ fontSize: '11px', color: '#9ca3af' }}>{draftSummary.totalItems} items</span>
+          </button>
+        )}
       </div>
 
       {/* Navigation List */}
@@ -124,6 +167,7 @@ export default function Sidebar({ activeTab, onTabChange, onNewQuotation }) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+            const isQuotationsTab = item.id === 'quotations';
             return (
               <li key={item.id}>
                 <button
@@ -142,6 +186,20 @@ export default function Sidebar({ activeTab, onTabChange, onNewQuotation }) {
                 >
                   <Icon size={18} style={{ color: isActive ? '#b8860b' : '#6b7280' }} />
                   <span>{item.label}</span>
+                  {isQuotationsTab && draftSummary && (
+                    <span style={{
+                      marginLeft: 'auto',
+                      fontSize: '10px',
+                      background: 'rgba(184, 134, 11, 0.2)',
+                      color: '#f59e0b',
+                      border: '1px solid rgba(184, 134, 11, 0.4)',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                      fontWeight: '700',
+                    }}>
+                      Draft
+                    </span>
+                  )}
                 </button>
               </li>
             );
