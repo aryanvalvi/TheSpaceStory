@@ -1,0 +1,23 @@
+{
+  "name": "the-space-story",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build:server": "npm run build --workspace=server",
+    "build:client": "npm run build --workspace=client",
+    "build": "npm run build:server && npm run build:client",
+    "seed": "npm run seed --workspace=server",
+    "test": "npm run test --workspace=server",
+    "typecheck": "npm run typecheck --workspace=server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
