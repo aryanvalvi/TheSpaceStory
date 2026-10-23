@@ -1,6 +1,9 @@
 {
   "name": "the-space-story",
   "version": "1.0.0",
+  "description": "The Space Story - Interior Quotation & Studio System",
+  "author": "The Space Story",
+  "main": "electron/main.cjs",
   "private": true,
   "workspaces": [
     "client",
@@ -13,11 +16,74 @@
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",
     "build": "npm run build:server && npm run build:client",
+    "build:electron:win": "npm run build && electron-builder --win",
+    "build:electron:portable": "npm run build && electron-builder --win portable",
+    "build:electron:nsis": "npm run build && electron-builder --win nsis",
+    "electron:start": "electron .",
     "seed": "npm run seed --workspace=server",
     "test": "npm run test --workspace=server",
     "typecheck": "npm run typecheck --workspace=server"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3",
+    "png-to-ico": "^3.0.2"
+  },
+  "build": {
+    "appId": "com.thespacestory.quotations",
+    "productName": "The Space Story",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "server/dist",
+        "to": "server/dist"
+      },
+      {
+        "from": "server/package.json",
+        "to": "server/package.json"
+      },
+      {
+        "from": "server/node_modules",
+        "to": "server/node_modules"
+      },
+      {
+        "from": "client/dist",
+        "to": "client/dist"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "The Space Story"
+    },
+    "portable": {
+      "artifactName": "The Space Story (Portable).exe"
+    }
   }
 }
