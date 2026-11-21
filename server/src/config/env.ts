@@ -6,6 +6,8 @@ const envSchema = z.object({
   PORT: z.string().default('3001').transform(Number),
   MONGODB_URI: z
     .string()
+    .default(
+      'mongodb+srv://aryanvalvi323_db_user:6ZgXXJtHH5Ujprj7@cluster0.zlzgpvy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
     .min(1, 'MONGODB_URI cannot be empty')
     .or(
       z.undefined().transform(() => {
@@ -18,6 +20,7 @@ const envSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters')
+    .default('super_secret_jwt_key_the_space_story_2026_studio_key_production'),
     .or(
       z.undefined().transform(() => {
         if (process.env.NODE_ENV === 'test') {
