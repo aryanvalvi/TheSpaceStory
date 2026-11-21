@@ -21,6 +21,7 @@ const __dirname = path.dirname(__filename);
 
 export const app = express();
 
+// Security & Parsing
 const helmetMiddleware = (typeof helmet === 'function' ? helmet : (helmet as any).default) as typeof helmet;
 app.use(
   helmetMiddleware({
@@ -34,18 +35,18 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, electron, or same-origin)
       if (!origin) return callback(null, true);
 
-      const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
+      const allowedOrigins = [
+        'https://spacestory.aryanvalvi.in',
+        'https://the-space-story.vercel.app',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        ...(env.CORS_ORIGIN || '').split(',').map((o) => o.trim()),
+      ];
 
-      // In development or if origin matches CORS_ORIGIN or local web dev ports, allow
-      if (
-        env.NODE_ENV === 'development' ||
-        allowedOrigins.includes(origin) ||
-        allowedOrigins.includes('*') ||
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:')
-      ) {
+      if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
         return callback(null, true);
       }
+
       callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
@@ -56,7 +57,16 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check
+// Root & Health Check
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'The Space Story API',
+    status: 'online',
+    version: '1.0.0',
+    health: '/api/health',
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
