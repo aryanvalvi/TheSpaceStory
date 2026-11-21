@@ -21,36 +21,36 @@ const __dirname = path.dirname(__filename);
 
 export const app = express();
 
+// Explicit CORS & Preflight handling
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowed = [
+    'https://spacestory.aryanvalvi.in',
+    'http://spacestory.aryanvalvi.in',
+    'https://the-space-story.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+
+  if (origin && (allowed.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('aryanvalvi.in'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
+
 // Security & Parsing
 const helmetMiddleware = (typeof helmet === 'function' ? helmet : (helmet as any).default) as typeof helmet;
 app.use(
   helmetMiddleware({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-  })
-);
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, electron, or same-origin)
-      if (!origin) return callback(null, true);
-
-      const allowedOrigins = [
-        'https://spacestory.aryanvalvi.in',
-        'https://the-space-story.vercel.app',
-        'http://the-space-story.vercel.app',
-        'http://localhost:5173',
-        'http://localhost:3000',
-        ...(env.CORS_ORIGIN || '').split(',').map((o) => o.trim()),
-      ];
-
-      if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-        return callback(null, true);
-      }
-
-      callback(new Error(`Not allowed by CORS: ${origin}`));
-    },
-    credentials: true,
   })
 );
 
