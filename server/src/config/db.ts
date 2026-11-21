@@ -8,23 +8,12 @@ if (!cached) {
 }
 
 export async function connectDB(): Promise<void> {
-  try {
   if (mongoose.connection.readyState >= 1) {
     return;
   }
 
   if (!cached.promise) {
     const dbName = env.NODE_ENV === 'test' ? 'the-space-story-test' : 'the-space-story';
-    await mongoose.connect(env.MONGODB_URI, {
-      dbName,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-    console.log(`✅ MongoDB connected: ${dbName}`);
-  } catch (error) {
-    console.error('❌ MongoDB connection failed:', error);
-    process.exit(1);
     cached.promise = mongoose
       .connect(env.MONGODB_URI, {
         dbName,
@@ -48,8 +37,6 @@ export async function connectDB(): Promise<void> {
 }
 
 export async function disconnectDB(): Promise<void> {
-  await mongoose.disconnect();
-  console.log('MongoDB disconnected');
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
