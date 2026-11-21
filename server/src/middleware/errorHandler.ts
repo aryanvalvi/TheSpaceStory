@@ -96,11 +96,10 @@ export function errorHandler(
 
   // Unknown errors
   console.error('Unhandled error:', err);
-  const isDev = process.env.NODE_ENV === 'development';
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
-      message: isDev ? err.message : 'An unexpected error occurred',
+      message: err.message || 'An unexpected error occurred',
     },
   });
 }
