@@ -1,5 +1,6 @@
 /**
  * The Space Story API Client
+ * Seamlessly supports Web, Local Dev, and Electron environments
  */
 
 export class ApiError extends Error {
@@ -12,12 +13,22 @@ export class ApiError extends Error {
   }
 }
 
+// Configurable base URL for API calls with direct production fallback
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://the-space-story-server-eight.vercel.app').trim();
+export const API_BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/+$/, '')}/api`;
+
 export async function request(endpoint, options = {}) {
-  const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${cleanEndpoint}`;
 
   const defaultHeaders = {
     'Content-Type': 'application/json',
   };
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('tss_token') : null;
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
 
   const config = {
     ...options,
@@ -25,7 +36,7 @@ export async function request(endpoint, options = {}) {
       ...defaultHeaders,
       ...options.headers,
     },
-    credentials: 'include', // sends httpOnly auth cookie
+    credentials: 'include', // sends httpOnly auth cookie if available
   };
 
   if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
@@ -108,7 +119,11 @@ export const api = {
   rejectQuotation: (id) => request(`/quotations/${id}/reject`, { method: 'POST' }),
   cancelQuotation: (id) => request(`/quotations/${id}/cancel`, { method: 'POST' }),
   reopenQuotation: (id) => request(`/quotations/${id}/reopen`, { method: 'POST' }),
-  getQuotationPdfUrl: (id, theme = 'tss_brand') => `/api/quotations/${id}/pdf?theme=${encodeURIComponent(theme)}`,
+  getQuotationPdfUrl: (id, theme = 'tss_brand') => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('tss_token') : null;
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return `${API_BASE_URL}/quotations/${id}/pdf?theme=${encodeURIComponent(theme)}${tokenParam}`;
+  },
 
   // Settings
   getStudioSettings: () => request('/settings/studio'),
