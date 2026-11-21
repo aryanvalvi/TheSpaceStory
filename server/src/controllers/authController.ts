@@ -13,10 +13,12 @@ function generateToken(userId: string, email: string): string {
 }
 
 function setTokenCookie(res: Response, token: string): void {
+  const isProd = env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: env.COOKIE_SAME_SITE,
+    domain: env.COOKIE_DOMAIN || undefined,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
   });
@@ -49,6 +51,7 @@ export const authController = {
             email: user.email,
             role: user.role,
           },
+          token,
         },
       });
     } catch (error) {
@@ -57,7 +60,7 @@ export const authController = {
   },
 
   async logout(_req: AuthRequest, res: Response) {
-    res.clearCookie('token', { path: '/' });
+    res.clearCookie('token', { path: '/', domain: env.COOKIE_DOMAIN || undefined });
     res.json({ success: true, data: { message: 'Logged out' } });
   },
 
@@ -71,16 +74,15 @@ export const authController = {
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        throw createAppError(409, 'CONFLICT', 'Email already registered');
+        throw createAppError(409, 'CONFLICT', 'A user with this email already exists');
       }
 
-      const user = new User({
+      const user = await User.create({
         name,
         email,
         passwordHash: password,
-        role: 'owner',
+        role: 'designer',
       });
-      await user.save();
 
       const token = generateToken(user._id.toString(), user.email);
       setTokenCookie(res, token);
@@ -94,6 +96,7 @@ export const authController = {
             email: user.email,
             role: user.role,
           },
+          token,
         },
       });
     } catch (error) {
