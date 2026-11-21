@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
 import { env } from './env.js';
+
+// Resolve DNS via Google/Cloudflare to avoid AWS Lambda SRV resolution timeouts
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {}
 
 let cached = (global as any).mongoose;
 
@@ -17,8 +23,8 @@ export async function connectDB(): Promise<void> {
     cached.promise = mongoose
       .connect(env.MONGODB_URI, {
         dbName,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 8000,
+        family: 4,
+        serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
       })
       .then((m) => {
