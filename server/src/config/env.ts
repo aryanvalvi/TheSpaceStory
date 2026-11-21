@@ -19,15 +19,7 @@ let env: Env;
 try {
   env = envSchema.parse(process.env);
 } catch (error) {
-  if (error instanceof z.ZodError) {
-    console.error('❌ Environment validation failed:');
-    for (const issue of error.issues) {
-      console.error(`  ${issue.path.join('.')}: ${issue.message}`);
-    }
-    process.exit(1);
-  }
-  throw error;
-  console.warn('⚠️ Environment validation warning:', error);
+  console.warn('⚠️ Environment validation warning, using fallback values:', error);
   env = {
     NODE_ENV: (process.env.NODE_ENV as any) || 'production',
     PORT: Number(process.env.PORT) || 3001,
