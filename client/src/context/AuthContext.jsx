@@ -20,6 +20,9 @@ export function AuthProvider({ children }) {
       setError(null);
     } catch (err) {
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('tss_token');
+      }
     } finally {
       setLoading(false);
     }
@@ -29,6 +32,9 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const data = await api.login({ email, password });
+      if (data?.token && typeof window !== 'undefined') {
+        localStorage.setItem('tss_token', data.token);
+      }
       setUser(data.user);
       return data.user;
     } catch (err) {
@@ -41,6 +47,9 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const data = await api.register({ name, email, password });
+      if (data?.token && typeof window !== 'undefined') {
+        localStorage.setItem('tss_token', data.token);
+      }
       setUser(data.user);
       return data.user;
     } catch (err) {
@@ -55,6 +64,9 @@ export function AuthProvider({ children }) {
     } catch (e) {
       // ignore
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('tss_token');
+      }
       setUser(null);
     }
   }
