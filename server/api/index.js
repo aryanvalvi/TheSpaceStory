@@ -1,25 +1,27 @@
 export default async function handler(req, res) {
   try {
-    let app, connectDB, env;
+    let app, connectDB;
     try {
       ({ app } = await import('../dist/app.js'));
       ({ connectDB } = await import('../dist/config/db.js'));
-      ({ env } = await import('../dist/config/env.js'));
     } catch {
       ({ app } = await import('../src/app.js'));
       ({ connectDB } = await import('../src/config/db.js'));
-      ({ env } = await import('../src/config/env.js'));
     }
 
-    // Connect to database in background so health check responds immediately
-    connectDB().catch((err) => console.error('MongoDB async connection error:', err));
+    // Connect to database for API routes that need it
+    if (req.url && !req.url.startsWith('/api/health') && req.method !== 'OPTIONS') {
+      await connectDB();
+    }
 
     return app(req, res);
   } catch (error) {
     console.error('Serverless error:', error);
     return res.status(500).json({
-      error: error.message,
-      stack: error.stack,
+      error: {
+        code: 'DB_CONNECTION_ERROR',
+        message: error.message || 'Database connection failed',
+      },
     });
   }
 }
