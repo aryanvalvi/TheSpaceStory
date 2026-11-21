@@ -20,9 +20,9 @@ const __dirname = path.dirname(__filename);
 
 export const app = express();
 
-// Security & Parsing
+const helmetMiddleware = (typeof helmet === 'function' ? helmet : (helmet as any).default) as typeof helmet;
 app.use(
-  helmet({
+  helmetMiddleware({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
