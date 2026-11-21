@@ -38,6 +38,7 @@ app.use(
       const allowedOrigins = [
         'https://spacestory.aryanvalvi.in',
         'https://the-space-story.vercel.app',
+        'http://the-space-story.vercel.app',
         'http://localhost:5173',
         'http://localhost:3000',
         ...(env.CORS_ORIGIN || '').split(',').map((o) => o.trim()),
