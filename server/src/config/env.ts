@@ -27,6 +27,16 @@ try {
     process.exit(1);
   }
   throw error;
+  console.warn('⚠️ Environment validation warning:', error);
+  env = {
+    NODE_ENV: (process.env.NODE_ENV as any) || 'production',
+    PORT: Number(process.env.PORT) || 3001,
+    MONGODB_URI: process.env.MONGODB_URI || '',
+    JWT_SECRET: process.env.JWT_SECRET || 'super_secret_jwt_key_the_space_story_2026_studio_key_production',
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+    CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
+    COOKIE_SAME_SITE: 'none',
+  };
 }
 
 export { env };
